@@ -7,9 +7,19 @@ const Directions = {
 
 const createCell = (x = 0, y = 0) => ({ x, y });
 
-const createSnake = (x, y) => ({
-  cells: [createCell(x, y)], // first cell is the head
+const createSnake = (x = 2, y = 2, color = 'black') => ({
+  cells: [createCell(x, y + 5), createCell(x, y + 4), createCell(x, y + 3), createCell(x, y + 2), createCell(x, y + 1), createCell(x, y)], // first cell is the head
   direction: Directions.EAST,
+  color,
+});
+
+const createFood = (x, y) => ({ x, y })
+const createBound = (x, y) => ({ x, y })
+
+const createGame = () => ({
+  snakes: [createSnake(), createSnake(3, 5, 'green')],
+  food: createFood(20, 39),
+  bounds: createBound(50, 50),
 });
 
 const wrap = (point, bound) => {
@@ -38,6 +48,7 @@ const move = (snake, bounds) => {
 export {
   createCell,
   createSnake,
+  createGame,
   move,
   Directions,
 };

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { times, find } from "lodash-es";
+import { times, find, cloneDeep } from "lodash-es";
 import styled from 'styled-components';
-import { createSnake, move, Directions } from "./lib/snake/engine";
+import { createGame, move, Directions } from "./lib/snake/engine";
 
 const isCellSame = (c1) => (c2) => c1.x === c2.x && c1.y === c2.y;
 
@@ -23,7 +23,7 @@ const Center = styled.div`
   height: 100vh;
 `;
 
-function PlayGrid({ height = 50, width = 50, snake, food }) {
+function PlayGrid({ game: { bounds, snakes, food } }) {
   const getPaint = (x, y) => {
     const cell = { x, y };
 
@@ -31,8 +31,13 @@ function PlayGrid({ height = 50, width = 50, snake, food }) {
       return 'orange';
     }
 
-    if (find(snake.cells, isCellSame(cell))) {
+    /* if (find(snakes[0].cells, isCellSame(cell))) {
       return 'black';
+    } */
+
+    let snake = find(snakes, (snake) => find(snake.cells, isCellSame(cell)))
+    if (snake) {
+      return snake.color;
     }
 
     return 'transparent';
@@ -41,9 +46,9 @@ function PlayGrid({ height = 50, width = 50, snake, food }) {
   return (
     <TableGrid>
       <tbody>
-        {times(height, (i) => (
+        {times(bounds.y, (i) => (
           <TableRow key={i}>
-            {times(width, (j) => <TableCell key={j} paint={getPaint(i, j)} />)}
+            {times(bounds.x, (j) => <TableCell key={j} paint={getPaint(i, j)} />)}
           </TableRow>
         ))}
       </tbody>
@@ -57,12 +62,17 @@ const bounds = {
 };
 
 function App() {
-  const [snake1, setSnake1] = useState(createSnake(2, 2));
-  const [food] = useState({ x: 20, y: 9 });
+  const [game, setGame] = useState(createGame());
+  const mySnakeId = 1;
 
   useEffect(() => {
     const timer = setInterval(
-      () => setSnake1(snake => move(snake, bounds)),
+      () => setGame(g => {
+        return {
+          ...g,
+          snakes: g.snakes.map(snake => move(snake, bounds)),
+        };
+      }),
       250
     );
     return () => clearInterval(timer);
@@ -70,30 +80,36 @@ function App() {
 
   const recordDirection = (e) => {
     let direction;
+    const mySnake = game.snakes[mySnakeId];
 
     if (e.code === 'ArrowUp' || e.code === 'KeyW') {
-      if (snake1.direction !== Directions.SOUTH) {
+      if (mySnake.direction !== Directions.SOUTH) {
         direction = Directions.NORTH;
       }
     } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-      if (snake1.direction !== Directions.NORTH) {
+      if (mySnake.direction !== Directions.NORTH) {
         direction = Directions.SOUTH;
       }
     } else if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-      if (snake1.direction !== Directions.WEST) {
+      if (mySnake.direction !== Directions.WEST) {
         direction = Directions.EAST;
       }
     } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-      if (snake1.direction !== Directions.EAST) {
+      if (mySnake.direction !== Directions.EAST) {
         direction = Directions.WEST;
       }
     }
 
     if (direction) {
-      setSnake1(snake => ({
-        ...snake,
-        direction,
-      }));
+      setGame(g => {
+        let snakes = cloneDeep(g.snakes);
+        snakes[mySnakeId].direction = direction;
+
+        return {
+          ...g,
+          snakes,
+        };
+      });
     }
   };
 
@@ -104,7 +120,7 @@ function App() {
 
   return (
     <Center>
-      <PlayGrid height={bounds.height} width={bounds.width} snake={snake1} food={food} />
+      <PlayGrid game={game} />
       {/* <pre>{JSON.stringify(snake1, null, 2)}</pre> */}
     </Center>
   );
